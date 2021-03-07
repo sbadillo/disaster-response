@@ -30,11 +30,11 @@ from nltk import word_tokenize
 from nltk.stem import WordNetLemmatizer, PorterStemmer, LancasterStemmer
 from nltk.corpus import stopwords
 
-nltk.download("words")
-nltk.download("punkt")
-nltk.download("wordnet")
-nltk.download("stopwords")
-nltk.download("averaged_perceptron_tagger")
+nltk.download("words", quiet=True)
+nltk.download("punkt", quiet=True)
+nltk.download("wordnet", quiet=True)
+nltk.download("stopwords", quiet=True)
+nltk.download("averaged_perceptron_tagger", quiet=True)
 
 
 def load_data(database_filepath):
@@ -145,8 +145,8 @@ def build_model():
 
     parameters = {
         "vect_tdidf__max_df": (0.75, 1.0),
-        "xgbclf__estimator__n_estimators": (50, 70),
         "vect_tdidf__use_idf": (True, False),
+        "xclf__estimator__n_estimators": (50, 70),
     }
 
     # Cross validate model
@@ -197,7 +197,7 @@ def evaluate_model(model, X_test, y_test, category_names):
         print("sklearn version is old.")
         output = pd.Series()
 
-        for i, c in enumerate(cols):
+        for i, c in enumerate(category_names):
             score = f1_score(y_test[c], y_pred.transpose()[i])
             output[c] = score
 
