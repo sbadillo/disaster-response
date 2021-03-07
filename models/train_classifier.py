@@ -151,7 +151,7 @@ def build_model():
 
     # Cross validate model
     # Exhaustive search over specified parameter values for an estimator.
-    cv = GridSearchCV(pipe, param_grid=parameters, verbose=2, cv=3)
+    cv = GridSearchCV(pipe, param_grid=parameters, verbose=3, cv=3)
 
     return cv
 
