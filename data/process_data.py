@@ -8,6 +8,11 @@ from sqlalchemy import create_engine
 def load_data(messages_filepath, categories_filepath):
     """Loads data from message_filepath and categories_filepath
     and outputs to a single dataframe
+
+    This dataset contains the original message in its original language,
+    the English translation, and dozens of classes for message content.
+    These classes are noted in column titles with a simple binary 1= yes, 2=no.
+
     """
 
     messages = pd.read_csv(messages_filepath)
@@ -23,7 +28,7 @@ def load_data(messages_filepath, categories_filepath):
 
     for column in categories:
 
-        categories[column] = categories[column].str[-1].replace("2", "1")
+        categories[column] = categories[column].str[-1].replace("2", "0")
         categories[column] = pd.to_numeric(categories[column])
 
     # Merge all together

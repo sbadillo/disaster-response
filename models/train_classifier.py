@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import re
 import string
-import sklearn
 import pickle
 
 from sqlalchemy import create_engine
@@ -19,7 +18,6 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import (
     classification_report,
-    f1_score,
     accuracy_score,
 )
 
@@ -191,8 +189,6 @@ def evaluate_model(model, X_test, y_test, category_names):
 
     return df
 
-   
-
 
 def save_model(model, model_filepath):
     """Store trained model into pickle file.
@@ -206,12 +202,12 @@ def save_model(model, model_filepath):
 
 
 def main():
-    
+
     if len(sys.argv) == 3:
-        
+
         database_filepath, model_filepath = sys.argv[1:]
         print("Loading data...\n    DATABASE: {}".format(database_filepath))
-        
+
         X, Y, category_names = load_data(database_filepath)
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
 
