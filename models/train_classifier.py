@@ -7,37 +7,26 @@ import seaborn as sns
 import re
 import string
 import sklearn
+import pickle
 
-from tqdm import tqdm
 from sqlalchemy import create_engine
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.multioutput import MultiOutputClassifier
-from sklearn.feature_extraction.text import (
-    CountVectorizer,
-    TfidfTransformer,
-    TfidfVectorizer,
-)
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import (
     classification_report,
     f1_score,
-    recall_score,
-    precision_score,
-    confusion_matrix,
     accuracy_score,
 )
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.model_selection import GridSearchCV
 
 
 from xgboost import XGBClassifier
 
-
 from nltk import word_tokenize
-from nltk import sent_tokenize
-from nltk.tag import pos_tag
 from nltk.stem import WordNetLemmatizer, PorterStemmer, LancasterStemmer
 from nltk.corpus import stopwords
 
@@ -49,11 +38,22 @@ nltk.download("averaged_perceptron_tagger")
 
 
 def load_data(database_filepath):
+    """Loads database located file database_filepath
+    and returns features, labels and categories.
+
+    Args:
+        database_filepath ([type]): [description]
+
+    Returns:
+        X : dataframe of features
+        y : dataframe of labels
+        categories : a list of labels corresponding (y columns)
+    """
 
     # usage X, Y, category_names = load_data(database_filepath)
 
     # read in db file to df
-    engine = create_engine("sqlite:///{}".format(database_filepath))
+    engine = create_engine("sqlite:///" + database_filepath)
 
     df = pd.read_sql_table(table_name="Table1", con=engine)
 
@@ -115,20 +115,15 @@ def tokenize(text):
 
 
 def build_model():
+    """Builds the machine learning pipeline, then crossvalidate
+    different parameters sets.
+    The best model pipeline is returned as output.
 
-    # # text processing and model pipeline
-    # pipe = Pipeline(
-    #     [
-    #         ("vect_tdidf", TfidfVectorizer(tokenizer=tokenize)),
-    #         (
-    #             "clf",
-    #             MultiOutputClassifier(
-    #                 RandomForestClassifier(n_estimators=50, n_jobs=-1, verbose=0)
-    #             ),
-    #         ),
-    #     ]
-    # )
+    Returns:
+        Gridsearch object : Gridsearch output
+    """
 
+    # text processing and model pipeline
     xclf = XGBClassifier(
         n_estimators=10,  # best is around 70-80
         random_state=42,
@@ -141,21 +136,30 @@ def build_model():
 
     pipe = Pipeline(
         [
-            ("vect_tdidf", TfidfVectorizer(tokenizer=tokenize, use_idf=False)),
+            ("vect_tdidf", TfidfVectorizer(tokenizer=tokenize)),
             ("xclf", MultiOutputClassifier(xclf)),
         ]
     )
 
-    # define parameters for GridSearchCV
+    # Define parameters for GridSearchCV
 
-    # create gridsearch object and return as final model pipeline
+    parameters = {
+        "vect_tdidf__max_df": (0.75, 1.0),
+        "xgbclf__estimator__n_estimators": (50, 70),
+        "vect_tdidf__use_idf": (True, False),
+    }
 
-    # return model_pipeline
-    return pipe
+    # Cross validate model
+    # Exhaustive search over specified parameter values for an estimator.
+    cv = GridSearchCV(pipe, param_grid=parameters, verbose=3, cv=3)
+
+    return cv
 
 
 def evaluate_model(model, X_test, y_test, category_names):
     """Predicts and prints scores of model.
+    Makes a clasification report of recall, precision and f1 scores.
+    Plot the f1-scores if possible.
 
     Args:
         model (estimator object): your model or model pipeline.
@@ -201,9 +205,14 @@ def evaluate_model(model, X_test, y_test, category_names):
 
 
 def save_model(model, model_filepath):
-    # Export model as a pickle file
+    """Store trained model into pickle file.
 
-    pass
+    Args:
+        model (estimator object): fitted model
+        model_filepath (string): destination filepath for pickle
+    """
+
+    pickle.dump(model.best_estimator_, open(model_filepath, "wb"))
 
 
 def main():
