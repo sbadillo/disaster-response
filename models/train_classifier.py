@@ -146,12 +146,12 @@ def build_model():
     parameters = {
         "vect_tdidf__max_df": (0.75, 1.0),
         "vect_tdidf__use_idf": (True, False),
-        "xclf__estimator__n_estimators": (50, 70),
+        "xclf__estimator__n_estimators": (60, 80, 100),
     }
 
     # Cross validate model
     # Exhaustive search over specified parameter values for an estimator.
-    cv = GridSearchCV(pipe, param_grid=parameters, verbose=3, cv=3)
+    cv = GridSearchCV(pipe, param_grid=parameters, verbose=2, cv=3)
 
     return cv
 
@@ -165,7 +165,7 @@ def evaluate_model(model, X_test, y_test, category_names):
         model (estimator object): your model or model pipeline.
         X_test ([type]): [description]
         y_test ([type]): [description]
-        category_names (list of array): list or array of categories to pass as labels
+        category_names (list of array): list of categories to pass as labels
 
     Returns:
         Dataframe : A summary containing the classification report
@@ -177,31 +177,21 @@ def evaluate_model(model, X_test, y_test, category_names):
     print("Accuracy = %.3f" % accuracy_score(y_test, y_pred))
 
     report = classification_report(y_test, y_pred, target_names=category_names)
+
     print(report)
 
-    if float(sklearn.__version__[:4]) >= 0.20:
+    output_dict = classification_report(
+        y_test, y_pred, target_names=category_names, output_dict=True
+    )
+    df = pd.DataFrame.from_dict(output_dict, orient="index")
 
-        output_dict = classification_report(
-            y_test, y_pred, target_names=category_names, output_dict=True
-        )
-        df = pd.DataFrame.from_dict(output_dict, orient="index")
+    # plot
+    plt.figure(figsize=(6, 10))
+    sns.barplot(df["f1-score"].sort_values(), df["f1-score"].sort_values().index)
 
-        # plot
-        plt.figure(figsize=(6, 10))
-        sns.barplot(df["f1-score"].sort_values(), df["f1-score"].sort_values().index)
+    return df
 
-        return df
-
-    else:
-
-        print("sklearn version is old.")
-        output = pd.Series()
-
-        for i, c in enumerate(category_names):
-            score = f1_score(y_test[c], y_pred.transpose()[i])
-            output[c] = score
-
-        return output
+   
 
 
 def save_model(model, model_filepath):
@@ -216,9 +206,12 @@ def save_model(model, model_filepath):
 
 
 def main():
+    
     if len(sys.argv) == 3:
+        
         database_filepath, model_filepath = sys.argv[1:]
         print("Loading data...\n    DATABASE: {}".format(database_filepath))
+        
         X, Y, category_names = load_data(database_filepath)
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
 
