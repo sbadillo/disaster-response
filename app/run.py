@@ -118,6 +118,7 @@ def index():
 # web page that handles user query and displays model results
 @app.route("/go")
 def go():
+
     # save user input in query
     query = request.args.get("query", "")
 
