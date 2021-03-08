@@ -4,8 +4,8 @@ A web app where an emergency worker can input a new message and get classificati
 
 This project demonstrates the creation of basic ETL (extract, transform and load) pipelines, ML (Machine Learning) pipelines. The results and interaction with the model are provided via a web app.
 
-The model is trained using figure 8 disaster response data.
-The estimator uses gradient boosting technique and an implementation of grid search to find the best parameters.
+The model is trained using figure-8's disaster response data.
+The estimator uses gradient boosting and an implementation of grid search to find the best parameters.
 
 -sergio
 
@@ -34,7 +34,7 @@ The estimator uses gradient boosting technique and an implementation of grid sea
 
 ### Additional info
 
-You might need to install packages from the reqauirement file :
+You might need to install packages from the requirements file :
 
 ```console
 $ pip install -r requirements.txt
