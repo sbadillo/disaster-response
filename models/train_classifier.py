@@ -55,9 +55,9 @@ def load_data(database_filepath):
 
     df = pd.read_sql_table(table_name="Table1", con=engine)
 
-    # clean columns with all zeros
-    is_not_empty = (df != 0).any(axis=0)
-    df = df.loc[:, is_not_empty]
+    # # clean columns with all zeros
+    # is_not_empty = (df != 0).any(axis=0)
+    # df = df.loc[:, is_not_empty]
 
     # define feateures (X) and label (y) arrays
     X = df["message"]

@@ -73,9 +73,9 @@ def tokenize(text):
 engine = create_engine("sqlite:///../data/DisasterResponse.db")
 df = pd.read_sql_table(table_name="Table1", con=engine)
 
-# drop cols with all zeros
-is_not_empty = (df != 0).any(axis=0)
-df = df.loc[:, is_not_empty]
+## drop cols with all zeros
+# is_not_empty = (df != 0).any(axis=0)
+# df = df.loc[:, is_not_empty]
 
 # load model
 model = joblib.load("../models/classifier.pkl")
@@ -87,22 +87,18 @@ model = joblib.load("../models/classifier.pkl")
 def index():
 
     # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
-    genre_counts = df.groupby("genre").count()["message"]
-    genre_names = list(genre_counts.index)
 
     labels_counts = df.drop(["id"], axis=1).select_dtypes(include="number").sum()
     labels_names = df.drop(["id"], axis=1).select_dtypes(include="number").columns
 
     # create visuals
-    # TODO: Below is an example - modify to create your own visuals
     graphs = [
         {
             "data": [Bar(x=labels_names, y=labels_counts)],
             "layout": {
-                "title": "Distribution of Message Genres",
+                "title": "Distribution of Message Categories",
                 "yaxis": {"title": "Count"},
-                "xaxis": {"title": "Genre"},
+                "xaxis": {"title": "Categorie"},
             },
         }
     ]

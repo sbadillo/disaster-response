@@ -11,6 +11,13 @@ The estimator uses gradient boosting and an implementation of grid search to fin
 
 ### Instructions:
 
+You might need to install packages from the requirements file :
+
+```console
+$ pip install -r requirements.txt
+```
+
+
 1. Run the following commands in the project's root directory to set up your database and model.
 
    - To run ETL pipeline that cleans data and stores in database
@@ -32,10 +39,9 @@ The estimator uses gradient boosting and an implementation of grid search to fin
 
 3. Go to http://localhost:3001/ to see the app
 
-### Additional info
+## Files
 
-You might need to install packages from the requirements file :
 
-```console
-$ pip install -r requirements.txt
-```
+- **data/process_data.py** : Extracts, transform and Load pipeline that takes disaster_categories.csv and disaster_messages.csv and writes outputs into a SQLite database.db in the specified database file path.
+- **model/train_classifier** : Machine Learning pipeline that builds, trains and evaluates a classification model using grid search and cross validation. The script stores the best classifier into a pickle file.  
+- **app/run.py** : Main run file that loads the pkl model and deploys a web app using flask.   
