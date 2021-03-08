@@ -17,7 +17,7 @@ nltk.download("stopwords", quiet=True)
 
 from flask import Flask
 from flask import render_template, request, jsonify
-from plotly.graph_objs import Bar
+from plotly.graph_objs import Bar, Pie
 
 from sqlalchemy import create_engine
 
@@ -72,6 +72,7 @@ def tokenize(text):
 # load data
 engine = create_engine("sqlite:///../data/DisasterResponse.db")
 df = pd.read_sql_table(table_name="Table1", con=engine)
+df.drop(columns=["id", "related"], axis=1, inplace=True)
 
 ## drop cols with all zeros
 # is_not_empty = (df != 0).any(axis=0)
@@ -88,8 +89,13 @@ def index():
 
     # extract data needed for visuals
 
-    labels_counts = df.drop(["id"], axis=1).select_dtypes(include="number").sum()
-    labels_names = df.drop(["id"], axis=1).select_dtypes(include="number").columns
+    labels_counts = (
+        df.select_dtypes(include="number").sum().sort_values(ascending=False)
+    )
+    labels_names = labels_counts.index.values
+
+    genre_counts = df.groupby("genre").count()["message"]
+    genre_names = list(genre_counts.index)
 
     # create visuals
     graphs = [
@@ -98,9 +104,17 @@ def index():
             "layout": {
                 "title": "Distribution of Message Categories",
                 "yaxis": {"title": "Count"},
-                "xaxis": {"title": "Categorie"},
+                "xaxis": {"title": "\r\n\n\n Categorie"},
             },
-        }
+        },
+        {
+            "data": [Pie(labels=genre_names, values=genre_counts)],
+            "layout": {
+                "title": "Distribution of Message Genres",
+                # "yaxis": {"title": "Count"},
+                # "xaxis": {"title": "Genres"},
+            },
+        },
     ]
 
     # encode plotly graphs in JSON
