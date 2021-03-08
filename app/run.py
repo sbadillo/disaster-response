@@ -2,9 +2,18 @@ import json
 import plotly
 import joblib
 import pandas as pd
+import re
+import string
+import nltk
 
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+
+nltk.download("words", quiet=True)
+nltk.download("punkt", quiet=True)
+nltk.download("wordnet", quiet=True)
+nltk.download("stopwords", quiet=True)
 
 from flask import Flask
 from flask import render_template, request, jsonify
@@ -15,17 +24,61 @@ from sqlalchemy import create_engine
 app = Flask(__name__)
 
 
+# def tokenize(text):
+#     tokens = word_tokenize(text)
+#     lemmatizer = WordNetLemmatizer()
+
+#     clean_tokens = []
+#     for tok in tokens:
+#         clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+#         clean_tokens.append(clean_tok)
+
+#     return clean_tokens
+
+
 def tokenize(text):
+    """Normalizes text into a list of tokens (words) using a set of replacements and
+    nltk dictionaries.
+    URL, numbers and ponctuations are replaced. Tokens are
+    filtered using nltk english words and stopwords dicts.
+    Final tokens are lemmatized.
+
+    Args:
+        text (str): text to be tokenized
+
+    Returns:
+        list : list of tokens
+    """
+
+    text = text.lower()
+
+    # replace all urls with a placeholder text
+    url_regex = (
+        "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+    )
+    text = re.sub(url_regex, "urlplaceholder", text)
+
+    # replace punctuation with spaces
+    t = str.maketrans(" ", " ", string.punctuation)
+    text = text.translate(t)
+
+    # replace single quote with empty char
+    t = str.maketrans(dict.fromkeys("'`", ""))
+    text = text.translate(t)
+
     tokens = word_tokenize(text)
+    # lemmatize and remove stop words
+
+    stop_words = stopwords.words("english")
     lemmatizer = WordNetLemmatizer()
 
     clean_tokens = []
     for tok in tokens:
-        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
-        clean_tokens.append(clean_tok)
+        if tok not in stop_words:
+            clean_tok = lemmatizer.lemmatize(tok).strip()
+            clean_tokens.append(clean_tok)
 
     return clean_tokens
-
 
 # load data
 engine = create_engine("sqlite:///../data/DisasterResponse.db")
