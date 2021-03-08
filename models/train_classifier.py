@@ -140,11 +140,14 @@ def build_model():
     )
 
     # Define parameters for GridSearchCV
+    # countVectorizer + tdidfTransformed has been drop in favor
+    #   of tdidf vectorizer, which seem to do both.
+    # comment : latest run indicates that the model performs better without td-idf.
 
     parameters = {
         "vect_tdidf__max_df": (0.75, 1.0),
         "vect_tdidf__use_idf": (True, False),
-        "xclf__estimator__n_estimators": (60, 80, 100),
+        "xclf__estimator__n_estimators": (50, 75, 100),
     }
 
     # Cross validate model
