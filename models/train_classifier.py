@@ -20,6 +20,7 @@ from sklearn.metrics import (
     classification_report,
     accuracy_score,
 )
+from werkzeug.wrappers import CommonRequestDescriptorsMixin
 
 
 from xgboost import XGBClassifier
@@ -60,9 +61,13 @@ def load_data(database_filepath):
     # df = df.loc[:, is_not_empty]
 
     # define feateures (X) and label (y) arrays
+    # "related" column is not a category !
+
     X = df["message"]
-    y = df.drop(columns=["id", "message", "original", "genre"], axis=1)
+    y = df.drop(columns=["id", "message", "original", "genre", "related"], axis=1)
     categories = list(y.columns)
+
+    print(f"Using {len(categories)} category labels")
 
     return X, y, categories
 
@@ -145,9 +150,9 @@ def build_model():
     # comment : latest run indicates that the model performs better without td-idf.
 
     parameters = {
-        "vect_tdidf__max_df": (0.75, 1.0),
+        # "vect_tdidf__max_df": (0.75, 1.0),
         "vect_tdidf__use_idf": (True, False),
-        "xclf__estimator__n_estimators": (50, 75, 100),
+        "xclf__estimator__n_estimators": (10, 20),
     }
 
     # Cross validate model

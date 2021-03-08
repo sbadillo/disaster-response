@@ -26,11 +26,6 @@ def load_data(messages_filepath, categories_filepath):
     category_colnames = [c.split("-")[0] for c in row]
     categories.columns = category_colnames
 
-    for column in categories:
-
-        categories[column] = categories[column].str[-1].replace("2", "0")
-        categories[column] = pd.to_numeric(categories[column])
-
     # Merge all together
     df.drop(columns="categories", axis=1, inplace=True)
     df = pd.concat([df, categories], axis=1)
