@@ -6,6 +6,8 @@ import re
 import string
 import nltk
 
+from sklearn.base import BaseEstimator, TransformerMixin
+
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
@@ -38,8 +40,6 @@ def tokenize(text):
         list : list of tokens
     """
 
-    text = text.lower()
-
     # replace all urls with a placeholder text
     url_regex = (
         "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
@@ -63,10 +63,40 @@ def tokenize(text):
     clean_tokens = []
     for tok in tokens:
         if tok not in stop_words:
-            clean_tok = lemmatizer.lemmatize(tok).strip()
+            clean_tok = lemmatizer.lemmatize(tok).lower().strip()
             clean_tokens.append(clean_tok)
 
     return clean_tokens
+
+
+
+class StartingVerbExtractor(BaseEstimator, TransformerMixin):
+    def starting_verb(self, text):
+
+        sentence_list = nltk.sent_tokenize(text)
+        for sentence in sentence_list:
+            pos_tags = nltk.pos_tag(tokenize(sentence))
+
+            try:
+                first_word, first_tag = pos_tags[0]
+                if first_tag in ["VB", "VBP"] or first_word == "RT":
+                    return True
+
+            except:
+                return False
+
+        return False
+
+    def fit(self, X, y=None):
+
+        return self
+
+    def transform(self, X):
+
+        X_tagged = pd.Series(X).apply(self.starting_verb)
+        return pd.DataFrame(X_tagged)
+
+
 
 
 # load data

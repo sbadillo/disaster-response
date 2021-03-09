@@ -8,7 +8,6 @@ import re
 import string
 import pickle
 import joblib
-from sklearn.base import BaseEstimator, TransformerMixin
 
 from sqlalchemy import create_engine
 
@@ -20,6 +19,8 @@ from sklearn.feature_extraction.text import (
     TfidfTransformer,
     TfidfVectorizer,
 )
+from sklearn.base import BaseEstimator, TransformerMixin
+
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import (
@@ -152,13 +153,14 @@ def build_model():
 
     # text processing and model pipeline
     xgboost = XGBClassifier(
+        nthread = 8,
         n_estimators=10,  # best is around 70-80
         random_state=42,
         seed=2,
         colsample_bytree=0.6,
         subsample=0.7,
         eval_metric="logloss",
-        use_label_encoder=False,
+        use_label_encoder=False,  
     )
 
     pipe = Pipeline(
@@ -180,7 +182,7 @@ def build_model():
                     ]
                 ),
             ),
-            ("clf", MultiOutputClassifier(AdaBoostClassifier(n_estimators=10))),
+            ("clf", MultiOutputClassifier(xgboost)),
         ]
     )
 
@@ -193,26 +195,38 @@ def build_model():
     # comment : latest run indicates that the model performs better without td-idf.
 
     parameters = {
-        # "features__text_pipeline__vect__ngram_range": ((1, 1), (1, 2)),
-        # "features__text_pipeline__vect__max_df": (0.75, 1.0),
-        # "features__text_pipeline__vect__max_features": (None, 5000),
-        # "features__text_pipeline__tfidf__use_idf": (True, False),
-        "clf__n_estimators": [10, 20],
+        "features__text_pipeline__vect__ngram_range": ((1, 1), (1, 2)),
+        "features__text_pipeline__vect__max_df": (0.75, 1.0),
+        "features__text_pipeline__vect__max_features": (None, 5000),
+#         "features__text_pipeline__tfidf__use_idf": (True, False),
+        "clf__estimator__n_estimators": [50, 100],
     }
+    
+#     print(pipe.get_params())
 
-    scorer = make_scorer(evaluate_model, greater_is_better=True)
+    scorer = make_scorer(score_model, greater_is_better=True)
 
     # Cross validate model
     # Exhaustive search over specified parameter values for an estimator.
 
-    cv = GridSearchCV(pipe, param_grid=parameters, scoring=scorer, verbose=3, cv=3)
+    cv = GridSearchCV(pipe, param_grid=parameters, scoring=scorer, verbose=3, cv=5)
 
-    # cv = pipe # debug only to skip cv
+    # cv = pipe # skip cv for debug purposes only
 
     return cv
 
 
+def score_model(y_true, y_pred, beta=1):
+    """custom scorer function used in cross validation.
+    Returns f1-score weighted average"""
+
+    output_dict = classification_report(
+        y_true, y_pred, output_dict=True, zero_division=1
+    )
+    return output_dict["weighted avg"]["f1-score"]
+
 def evaluate_model(model, X_test, y_test, category_names):
+    
     """Predicts and prints scores of model.
     Makes a clasification report of recall, precision and f1 scores.
     Plot the f1-scores if possible.
@@ -258,14 +272,6 @@ def save_model(model, model_filepath):
         model (estimator object): fitted model
         model_filepath (string): destination filepath for pickle
     """
-    try:
-
-        joblib.dump(
-            model.best_params_, "best_params_.pkl", compress=1
-        )  # Only best parameters
-
-    except:
-        print(".")
 
     pickle.dump(model.best_estimator_, open(model_filepath, "wb"))
 
