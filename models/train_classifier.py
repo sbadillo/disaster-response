@@ -7,18 +7,24 @@ import seaborn as sns
 import re
 import string
 import pickle
+import joblib
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from sqlalchemy import create_engine
 
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.multioutput import MultiOutputClassifier
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import (
+    CountVectorizer,
+    TfidfTransformer,
+    TfidfVectorizer,
+)
+from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import (
+    make_scorer,
     classification_report,
-    accuracy_score,
 )
 from werkzeug.wrappers import CommonRequestDescriptorsMixin
 
@@ -56,19 +62,11 @@ def load_data(database_filepath):
 
     df = pd.read_sql_table(table_name="Table1", con=engine)
 
-    # clean columns with all zeros
-    #     is_not_empty = (df != 0).any(axis=0)
-    #     df = df.loc[:, is_not_empty]
-
     # define feateures (X) and label (y) arrays
-    # "related" column is not really helping !
-    # "child_alone" column has no samples !
 
     X = df["message"]
-    y = df.drop(columns=["id", "message", "original", "genre", "related"], axis=1)
+    y = df.iloc[:, 4:]
     categories = list(y.columns)
-
-    print(f"Using {len(categories)} category labels")
 
     return X, y, categories
 
@@ -86,8 +84,6 @@ def tokenize(text):
     Returns:
         list : list of tokens
     """
-
-    text = text.lower()
 
     # replace all urls with a placeholder text
     url_regex = (
@@ -112,10 +108,37 @@ def tokenize(text):
     clean_tokens = []
     for tok in tokens:
         if tok not in stop_words:
-            clean_tok = lemmatizer.lemmatize(tok).strip()
+            clean_tok = lemmatizer.lemmatize(tok).lower().strip()
             clean_tokens.append(clean_tok)
 
     return clean_tokens
+
+
+class StartingVerbExtractor(BaseEstimator, TransformerMixin):
+    def starting_verb(self, text):
+
+        sentence_list = nltk.sent_tokenize(text)
+        for sentence in sentence_list:
+            pos_tags = nltk.pos_tag(tokenize(sentence))
+
+            try:
+                first_word, first_tag = pos_tags[0]
+                if first_tag in ["VB", "VBP"] or first_word == "RT":
+                    return True
+
+            except:
+                return False
+
+        return False
+
+    def fit(self, X, y=None):
+
+        return self
+
+    def transform(self, X):
+
+        X_tagged = pd.Series(X).apply(self.starting_verb)
+        return pd.DataFrame(X_tagged)
 
 
 def build_model():
@@ -128,8 +151,8 @@ def build_model():
     """
 
     # text processing and model pipeline
-    xclf = XGBClassifier(
-        n_estimators=100,  # best is around 70-80
+    xgboost = XGBClassifier(
+        n_estimators=10,  # best is around 70-80
         random_state=42,
         seed=2,
         colsample_bytree=0.6,
@@ -140,10 +163,29 @@ def build_model():
 
     pipe = Pipeline(
         [
-            ("vect_tdidf", TfidfVectorizer(tokenizer=tokenize)),
-            ("xclf", MultiOutputClassifier(xclf)),
+            (
+                "features",
+                FeatureUnion(
+                    [
+                        (
+                            "text_pipeline",
+                            Pipeline(
+                                [
+                                    ("vect", CountVectorizer(tokenizer=tokenize)),
+                                    ("tfidf", TfidfTransformer()),
+                                ]
+                            ),
+                        ),
+                        ("starting_verb", StartingVerbExtractor()),
+                    ]
+                ),
+            ),
+            ("clf", MultiOutputClassifier(AdaBoostClassifier(n_estimators=10))),
         ]
     )
+
+    # Resultats of test runs
+    # xgboost n_estimators = 10, results f1-score w-avg : 0.59
 
     # Define parameters for GridSearchCV
     # countVectorizer + tdidfTransformed has been drop in favor
@@ -151,14 +193,21 @@ def build_model():
     # comment : latest run indicates that the model performs better without td-idf.
 
     parameters = {
-        "vect_tdidf__max_df": (0.75, 1.0),
-        "vect_tdidf__use_idf": (True, False),
-        "xclf__estimator__n_estimators": (50, 100, 120),
+        # "features__text_pipeline__vect__ngram_range": ((1, 1), (1, 2)),
+        # "features__text_pipeline__vect__max_df": (0.75, 1.0),
+        # "features__text_pipeline__vect__max_features": (None, 5000),
+        # "features__text_pipeline__tfidf__use_idf": (True, False),
+        "clf__n_estimators": [10, 20],
     }
+
+    scorer = make_scorer(evaluate_model, greater_is_better=True)
 
     # Cross validate model
     # Exhaustive search over specified parameter values for an estimator.
-    cv = GridSearchCV(pipe, param_grid=parameters, verbose=3, cv=3)
+
+    cv = GridSearchCV(pipe, param_grid=parameters, scoring=scorer, verbose=3, cv=3)
+
+    # cv = pipe # debug only to skip cv
 
     return cv
 
@@ -181,22 +230,25 @@ def evaluate_model(model, X_test, y_test, category_names):
 
     y_pred = model.predict(X_test)
 
-    print("Accuracy = %.3f" % accuracy_score(y_test, y_pred))
+    # print("Accuracy = %.3f" % accuracy_score(y_test, y_pred))
 
-    report = classification_report(y_test, y_pred, target_names=category_names)
+    # report = classification_report(y_test, y_pred, target_names=category_names)
 
-    print(report)
+    # print(report)
 
     output_dict = classification_report(
-        y_test, y_pred, target_names=category_names, output_dict=True
+        y_test, y_pred, target_names=category_names, output_dict=True, zero_division=1
     )
+
     df = pd.DataFrame.from_dict(output_dict, orient="index")
 
     # plot
-    plt.figure(figsize=(6, 10))
-    sns.barplot(df["f1-score"].sort_values(), df["f1-score"].sort_values().index)
+    # plt.figure(figsize=(6, 10))
+    # sns.barplot(df["f1-score"].sort_values(), df["f1-score"].sort_values().index)
 
-    return df
+    # print(output_dict["weighted avg"]["f1-score"])
+    # print(df["f1-score"].mean())
+    return output_dict["weighted avg"]["f1-score"]
 
 
 def save_model(model, model_filepath):
@@ -206,6 +258,14 @@ def save_model(model, model_filepath):
         model (estimator object): fitted model
         model_filepath (string): destination filepath for pickle
     """
+    try:
+
+        joblib.dump(
+            model.best_params_, "best_params_.pkl", compress=1
+        )  # Only best parameters
+
+    except:
+        print(".")
 
     pickle.dump(model.best_estimator_, open(model_filepath, "wb"))
 
