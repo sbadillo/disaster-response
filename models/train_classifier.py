@@ -56,12 +56,13 @@ def load_data(database_filepath):
 
     df = pd.read_sql_table(table_name="Table1", con=engine)
 
-    # # clean columns with all zeros
-    # is_not_empty = (df != 0).any(axis=0)
-    # df = df.loc[:, is_not_empty]
+    # clean columns with all zeros
+    #     is_not_empty = (df != 0).any(axis=0)
+    #     df = df.loc[:, is_not_empty]
 
     # define feateures (X) and label (y) arrays
-    # "related" column is not a category !
+    # "related" column is not really helping !
+    # "child_alone" column has no samples !
 
     X = df["message"]
     y = df.drop(columns=["id", "message", "original", "genre", "related"], axis=1)
@@ -152,7 +153,7 @@ def build_model():
     parameters = {
         "vect_tdidf__max_df": (0.75, 1.0),
         "vect_tdidf__use_idf": (True, False),
-        "xclf__estimator__n_estimators": (50, 75, 100),
+        "xclf__estimator__n_estimators": (50, 100, 120),
     }
 
     # Cross validate model
