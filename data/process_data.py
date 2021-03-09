@@ -45,6 +45,8 @@ def clean_data(df):
 
     df.drop_duplicates(inplace=True)
 
+    # idea : will dropping all-zero rows help ?
+
     return df
 
 

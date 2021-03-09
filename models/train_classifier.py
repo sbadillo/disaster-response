@@ -128,7 +128,7 @@ def build_model():
 
     # text processing and model pipeline
     xclf = XGBClassifier(
-        n_estimators=10,  # best is around 70-80
+        n_estimators=100,  # best is around 70-80
         random_state=42,
         seed=2,
         colsample_bytree=0.6,
@@ -150,9 +150,9 @@ def build_model():
     # comment : latest run indicates that the model performs better without td-idf.
 
     parameters = {
-        # "vect_tdidf__max_df": (0.75, 1.0),
+        "vect_tdidf__max_df": (0.75, 1.0),
         "vect_tdidf__use_idf": (True, False),
-        "xclf__estimator__n_estimators": (10, 20),
+        "xclf__estimator__n_estimators": (50, 75, 100),
     }
 
     # Cross validate model
