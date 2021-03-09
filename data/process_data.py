@@ -26,6 +26,12 @@ def load_data(messages_filepath, categories_filepath):
     category_colnames = [c.split("-")[0] for c in row]
     categories.columns = category_colnames
 
+    for column in categories:
+
+        # keep only numeric values
+        categories[column] = categories[column].str[-1]
+        categories[column] = pd.to_numeric(categories[column])
+
     # Merge all together
     df.drop(columns="categories", axis=1, inplace=True)
     df = pd.concat([df, categories], axis=1)
@@ -43,9 +49,11 @@ def clean_data(df):
         df: Filtered or clean dataframe
     """
 
-    df.drop_duplicates(inplace=True)
+    # drop row where category values is "2"
+    df = df.drop(index=df[df.iloc[:, 4:].isin([2]).any(axis=1)].index, axis=0)
 
-    # idea : will dropping all-zero rows help ?
+    # drop duplicates
+    df = df.drop_duplicates()
 
     return df
 
