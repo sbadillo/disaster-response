@@ -7,16 +7,17 @@ This project demonstrates the creation of basic ETL (extract, transform and load
 The model is trained using figure-8's disaster response data.
 The estimator uses gradient boosting and an implementation of grid search to find the best parameters.
 
--sergio
+- sergio
 
-### Instructions:
+## Requirements:
 
-You might need to install packages from the requirements file :
+1. This script uses Xgboost, so you might need to install packages from the requirements file.
 
 ```console
 $ pip install -r requirements.txt
 ```
 
+## Instructions
 
 1. Run the following commands in the project's root directory to set up your database and model.
 
@@ -35,6 +36,7 @@ $ python models/train_classifier.py data/DisasterResponse.db models/classifier.p
 2. Run the following command in the app's directory to run your web app.
 
 ```console
+$ cd app/
 $ python run.py
 ```
 
@@ -46,6 +48,3 @@ $ python run.py
 - **data/process_data.py** : Extracts, transform and Load pipeline that takes disaster_categories.csv and disaster_messages.csv and writes outputs into a SQLite database.db in the specified database file path.
 - **model/train_classifier** : Machine Learning pipeline that builds, trains and evaluates a classification model using grid search and cross validation. The script stores the best classifier into a pickle file.  
 - **app/run.py** : Main run file that loads the pkl model and deploys a web app using flask.   
-
-
-msg = ['Hello I see fire in the street and many houses are destroyed, homeless people everywhere']
