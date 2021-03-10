@@ -102,11 +102,7 @@ class StartingVerbExtractor(BaseEstimator, TransformerMixin):
 # load data
 engine = create_engine("sqlite:///../data/DisasterResponse.db")
 df = pd.read_sql_table(table_name="Table1", con=engine)
-df.drop(columns=["id", "related"], axis=1, inplace=True)
 
-## drop cols with all zeros
-# is_not_empty = (df != 0).any(axis=0)
-# df = df.loc[:, is_not_empty]
 
 # load model
 model = joblib.load("../models/classifier.pkl")
@@ -119,9 +115,8 @@ def index():
 
     # extract data needed for visuals
 
-    labels_counts = (
-        df.select_dtypes(include="number").sum().sort_values(ascending=False)
-    )
+    labels_counts = df.iloc[:,4:].sum().sort_values(ascending=False)
+    
     labels_names = labels_counts.index.values
 
     genre_counts = df.groupby("genre").count()["message"]
@@ -141,8 +136,6 @@ def index():
             "data": [Pie(labels=genre_names, values=genre_counts)],
             "layout": {
                 "title": "Distribution of Message Genres",
-                # "yaxis": {"title": "Count"},
-                # "xaxis": {"title": "Genres"},
             },
         },
     ]
