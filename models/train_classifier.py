@@ -56,8 +56,6 @@ def load_data(database_filepath):
         categories : a list of labels corresponding (y columns)
     """
 
-    # usage X, Y, category_names = load_data(database_filepath)
-
     # read in db file to df
     engine = create_engine("sqlite:///" + database_filepath)
 
@@ -153,14 +151,14 @@ def build_model():
 
     # text processing and model pipeline
     xgboost = XGBClassifier(
-        nthread = 8,
+        nthread=8,
         n_estimators=10,  # best is around 70-80
         random_state=42,
         seed=2,
         colsample_bytree=0.6,
         subsample=0.7,
         eval_metric="logloss",
-        use_label_encoder=False,  
+        use_label_encoder=False,
     )
 
     pipe = Pipeline(
@@ -198,11 +196,9 @@ def build_model():
         "features__text_pipeline__vect__ngram_range": ((1, 1), (1, 2)),
         "features__text_pipeline__vect__max_df": (0.75, 1.0),
         "features__text_pipeline__vect__max_features": (None, 5000),
-#         "features__text_pipeline__tfidf__use_idf": (True, False),
+        #         "features__text_pipeline__tfidf__use_idf": (True, False),
         "clf__estimator__n_estimators": [50, 100],
     }
-    
-#     print(pipe.get_params())
 
     scorer = make_scorer(score_model, greater_is_better=True)
 
@@ -210,8 +206,6 @@ def build_model():
     # Exhaustive search over specified parameter values for an estimator.
 
     cv = GridSearchCV(pipe, param_grid=parameters, scoring=scorer, verbose=3, cv=5)
-
-    # cv = pipe # skip cv for debug purposes only
 
     return cv
 
@@ -225,8 +219,9 @@ def score_model(y_true, y_pred, beta=1):
     )
     return output_dict["weighted avg"]["f1-score"]
 
+
 def evaluate_model(model, X_test, y_test, category_names):
-    
+
     """Predicts and prints scores of model.
     Makes a clasification report of recall, precision and f1 scores.
     Plot the f1-scores if possible.
@@ -244,10 +239,7 @@ def evaluate_model(model, X_test, y_test, category_names):
 
     y_pred = model.predict(X_test)
 
-    # print("Accuracy = %.3f" % accuracy_score(y_test, y_pred))
-
     # report = classification_report(y_test, y_pred, target_names=category_names)
-
     # print(report)
 
     output_dict = classification_report(
@@ -260,8 +252,6 @@ def evaluate_model(model, X_test, y_test, category_names):
     # plt.figure(figsize=(6, 10))
     # sns.barplot(df["f1-score"].sort_values(), df["f1-score"].sort_values().index)
 
-    # print(output_dict["weighted avg"]["f1-score"])
-    # print(df["f1-score"].mean())
     return output_dict["weighted avg"]["f1-score"]
 
 
